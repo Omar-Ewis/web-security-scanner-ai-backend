@@ -38,7 +38,7 @@ const bootStrap = async() : Promise<void> =>{
   
   // app-routing
   app.get('/', (req:Request,res:Response,next)=>{
-    res.json({message:`Welcome to ${process.env.APPLICATION_NAME} Back-End landing page`});
+    res.json({message:`Welcome to ${process.env.APPLICATION_NAME} Back-End landing page 🔥`});
   })
 
   // sub-app-routing-modules
