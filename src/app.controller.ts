@@ -2,7 +2,7 @@
 // import {resolve} from 'node:path';
 import {config} from 'dotenv';
 // config({path:resolve("./config/.env.development")});
-config({});
+config();
 
 // Load Express and Express Type
 import type {Express, Request, Response} from 'express' 
@@ -30,6 +30,8 @@ const bootStrap = async() : Promise<void> =>{
   const app : Express= express();
   const port : number | string = process.env.PORT || 5000;
   app.use(cors(),express.json() , helmet() , limiter);
+  console.log("DB_URI exists:", !!process.env.DB_URI);
+  console.log("PORT:", process.env.PORT);
 
   // DataBase
   await connection();
