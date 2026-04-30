@@ -1,7 +1,8 @@
 // Import ENV
-import {resolve} from 'node:path';
+// import {resolve} from 'node:path';
 import {config} from 'dotenv';
-config({path:resolve("./config/.env.development")});
+// config({path:resolve("./config/.env.development")});
+config({});
 
 // Load Express and Express Type
 import type {Express, Request, Response} from 'express' 
