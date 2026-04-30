@@ -1,2 +1,3 @@
-# web-security-scanner-ai-backend
-Backend system for scanning web applications and detecting vulnerabilities
+# Black Cat - Web Security Scanner AI
+
+A backend system for scanning web applications and detecting security vulnerabilities using AI techniques.
