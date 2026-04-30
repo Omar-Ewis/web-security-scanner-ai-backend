@@ -35,7 +35,7 @@ export const normalScan = async (req: Request, res: Response) => {
 export const streamScanProgress = async (
   req: Request<IScanIdParamsInputDto>,
   res: Response
-) => {
+): Promise<void> => {
   const { scanId } = req.params;
 
   res.setHeader("Content-Type", "text/event-stream");
@@ -61,7 +61,8 @@ export const streamScanProgress = async (
       if (!scanDoc) {
         sendEvent("error", { message: "Scan not found" });
         clearInterval(interval);
-        return res.end();
+        res.end();
+        return;
       }
 
       sendEvent("progress", scanDoc);
@@ -73,12 +74,14 @@ export const streamScanProgress = async (
       ) {
         sendEvent("done", scanDoc);
         clearInterval(interval);
-        return res.end();
+        res.end();
+        return;
       }
     } catch (err: any) {
       sendEvent("error", { message: err.message });
       clearInterval(interval);
-      return res.end();
+      res.end();
+      return;
     }
   }, 3000);
 
