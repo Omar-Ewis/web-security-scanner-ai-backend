@@ -230,28 +230,28 @@ class Authentication {
     return res.status(200).json({message:'Done', data:{credentials}})
 
   }
-  sendForgotOTPCode= async (req:Request,res:Response) =>{
-    const {email} = req.body;
-    const user = await this.userModel.findOne({
-      filter:{
-        email,
-        confirmedAt:{ $exists:true },
-        provider:ProviderEnum.System
-      }
-    })
-    if(!user){
-      throw new NotFoundException('Invalid Account');
-    }
-    const OTP = Math.floor(100000 + Math.random() * 900000);
-    const result = await this.userModel.updateOne(
-      {
-        filter:{email},
-        update:{
+  // sendForgotOTPCode= async (req:Request,res:Response) =>{
+  //   const {email} = req.body;
+  //   const user = await this.userModel.findOne({
+  //     filter:{
+  //       email,
+  //       confirmedAt:{ $exists:true },
+  //       provider:ProviderEnum.System
+  //     }
+  //   })
+  //   if(!user){
+  //     throw new NotFoundException('Invalid Account');
+  //   }
+  //   const OTP = Math.floor(100000 + Math.random() * 900000);
+  //   const result = await this.userModel.updateOne(
+  //     {
+  //       filter:{email},
+  //       update:{
           
-        }
-      }
-    )
+  //       }
+  //     }
+  //   )
 
-  } 
+  // } 
 }
 export default new Authentication();
