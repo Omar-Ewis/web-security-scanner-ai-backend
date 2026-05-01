@@ -1,5 +1,5 @@
 import { Worker, Job } from "bullmq";
-import { redisConnection } from "../utils/redis";
+import { bullmqConnection } from "../utils/bullmq.redis";
 import {
   ScanModel,
   ScanStatusEnum,
@@ -93,6 +93,6 @@ export const prepareWorker = new Worker(
     }
   },
   {
-    connection: redisConnection,
+    connection: bullmqConnection,
   }
 );

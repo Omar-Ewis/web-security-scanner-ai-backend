@@ -1,10 +1,9 @@
 import { Worker, Job } from "bullmq";
 import axios from "axios";
-import { redisConnection } from "../utils/redis";
 import { ScanModel, ScanStatusEnum } from "../DataBase/models/Scan.Model";
 import { VulnerabilityModel } from "../DataBase/models/Vulnerability.Model";
 import { ZAP_APIS } from "../utils/security.api";
-
+import { bullmqConnection } from "../utils/bullmq.redis";
 
 interface IMonitorJobData {
   scanId: string;
@@ -13,6 +12,8 @@ interface IMonitorJobData {
 
 const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
+
+const POLLING_INTERVAL_MS = 7000;
 
 const isScanStopped = async (scanId: string) => {
   const scanDoc = await ScanModel.findById(scanId).select("status");
@@ -33,64 +34,54 @@ export const monitorWorker = new Worker(
       console.log("M1) Monitor Worker started:", job.data);
 
       let progress = 0;
+      let lastProgress = -1;
       let scanStatus = "running";
 
       while (scanStatus !== "completed" && progress < 100) {
-        const stoppedBeforeStatus = await isScanStopped(scanId);
-        if (stoppedBeforeStatus) {
-          console.log(`🛑 Scan ${scanId} was stopped manually before status check`);
+        const stopped = await isScanStopped(scanId);
+
+        if (stopped) {
+          console.log(`Scan ${scanId} was stopped manually`);
           return;
         }
 
-        console.log("M2) before status request");
-
-        const statusResponse = await axios.get(
-          ZAP_APIS.STATUS(zapScanId)
-        );
-
-        console.log("M3) status response =", statusResponse.data);
+        const statusResponse = await axios.get(ZAP_APIS.STATUS(zapScanId));
 
         progress = Number(statusResponse.data?.progress_percent ?? 0);
         scanStatus = statusResponse.data?.status ?? "running";
-
-        console.log("M4) progress =", progress);
-        console.log("M5) scanStatus =", scanStatus);
 
         if (Number.isNaN(progress)) {
           throw new Error("Invalid progress_percent value");
         }
 
-        const stoppedBeforeUpdate = await isScanStopped(scanId);
-        if (stoppedBeforeUpdate) {
-          console.log(`🛑 Scan ${scanId} was stopped manually before DB update`);
-          return;
+        console.log(`Scan ${scanId} progress: ${progress}%`);
+
+        // Update DB only when progress changes
+        if (progress !== lastProgress) {
+          await ScanModel.findByIdAndUpdate(scanId, {
+            progress,
+            status: ScanStatusEnum.SCANNING,
+          });
+
+          lastProgress = progress;
+          console.log("DB updated with new progress");
         }
-
-        await ScanModel.findByIdAndUpdate(scanId, {
-          progress,
-          status: ScanStatusEnum.SCANNING,
-        });
-
-        console.log("M6) DB updated with progress");
 
         if (scanStatus === "completed" || progress >= 100) {
           break;
         }
 
-        await sleep(3000);
+        await sleep(POLLING_INTERVAL_MS);
       }
 
       const stoppedBeforeResults = await isScanStopped(scanId);
+
       if (stoppedBeforeResults) {
-        console.log(`🛑 Scan ${scanId} was stopped manually before fetching results`);
+        console.log(`Scan ${scanId} was stopped before fetching results`);
         return;
       }
 
-      console.log("M7) before results request");
-
-      const resultsResponse = await axios.get(
-        ZAP_APIS.RESULTS(zapScanId)
-      );
+      const resultsResponse = await axios.get(ZAP_APIS.RESULTS(zapScanId));
 
       const resultData = resultsResponse.data;
       const alerts = resultData.alerts ?? [];
@@ -105,8 +96,9 @@ export const monitorWorker = new Worker(
       }));
 
       const stoppedBeforeSaving = await isScanStopped(scanId);
+
       if (stoppedBeforeSaving) {
-        console.log(`🛑 Scan ${scanId} was stopped manually before saving results`);
+        console.log(`Scan ${scanId} was stopped before saving results`);
         return;
       }
 
@@ -117,8 +109,9 @@ export const monitorWorker = new Worker(
       }
 
       const stoppedBeforeComplete = await isScanStopped(scanId);
+
       if (stoppedBeforeComplete) {
-        console.log(`🛑 Scan ${scanId} was stopped manually before marking completed`);
+        console.log(`Scan ${scanId} was stopped before marking completed`);
         return;
       }
 
@@ -140,14 +133,17 @@ export const monitorWorker = new Worker(
         },
       });
 
-      console.log(`✅ Scan ${scanId} is now COMPLETED`);
+      console.log(`Scan ${scanId} is now COMPLETED`);
     } catch (error: any) {
-      console.error("❌ Caught error in monitor worker:", error?.message || error);
+      console.error(
+        "Caught error in monitor worker:",
+        error?.message || error
+      );
 
       const scanDoc = await ScanModel.findById(scanId).select("status");
 
       if (scanDoc?.status === ScanStatusEnum.STOPPED) {
-        console.log(`🛑 Scan ${scanId} already stopped, skipping FAILED update`);
+        console.log(`Scan ${scanId} already stopped, skipping FAILED update`);
         return;
       }
 
@@ -161,6 +157,6 @@ export const monitorWorker = new Worker(
     }
   },
   {
-    connection: redisConnection,
+    connection: bullmqConnection,
   }
 );

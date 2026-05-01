@@ -1,6 +1,5 @@
 import { Queue } from "bullmq";
-import { redisConnection } from "../utils/redis";
-
+import { bullmqConnection } from "../utils/bullmq.redis";
 export const prepareQueue = new Queue("prepare-scan", {
-  connection: redisConnection,
+  connection: bullmqConnection,
 });

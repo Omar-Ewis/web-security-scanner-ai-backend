@@ -19,6 +19,7 @@ import userController from './modules/user/user.controller'
 import scanController from './modules/scan/scan.controller'
 import { globalErrorHandling } from './utils/response/error.response';
 import connection from './DataBase/connections.db';
+// import { connectRedis } from './DataBase/redis.connection.db';
 const limiter = rateLimit({
     windowMs:60 * 60000,
     limit:2000,
@@ -30,11 +31,10 @@ const bootStrap = async() : Promise<void> =>{
   const app : Express= express();
   const port : number | string = process.env.PORT || 5000;
   app.use(cors(),express.json() , helmet() , limiter);
-  console.log("DB_URI exists:", !!process.env.DB_URI);
-  console.log("PORT:", process.env.PORT);
-
+  
   // DataBase
   await connection();
+  // await connectRedis();
   
   // app-routing
   app.get('/', (req:Request,res:Response,next)=>{
