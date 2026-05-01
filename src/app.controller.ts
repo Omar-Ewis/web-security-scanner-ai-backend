@@ -31,7 +31,8 @@ const bootStrap = async() : Promise<void> =>{
   const app : Express= express();
   const port : number | string = process.env.PORT || 5000;
   app.use(cors(),express.json() , helmet() , limiter);
-  
+  console.log("ZAP_BASE_URL:", process.env.ZAP_BASE_URL);
+  console.log("STOP_ENDPOINT:", process.env.ZAP_ASCAN_STOP_ENDPOINT);
   // DataBase
   await connection();
   // await connectRedis();
