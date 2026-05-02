@@ -1,8 +1,8 @@
 // Import ENV
-// import {resolve} from 'node:path';
+import {resolve} from 'node:path';
 import {config} from 'dotenv';
-// config({path:resolve("./config/.env.development")});
-config();
+config({path:resolve("./config/.env.development")});
+// config();
 
 // Load Express and Express Type
 import type {Express, Request, Response} from 'express' 
@@ -31,8 +31,6 @@ const bootStrap = async() : Promise<void> =>{
   const app : Express= express();
   const port : number | string = process.env.PORT || 5000;
   app.use(cors(),express.json() , helmet() , limiter);
-  console.log("ZAP_BASE_URL:", process.env.ZAP_BASE_URL);
-  console.log("STOP_ENDPOINT:", process.env.ZAP_ASCAN_STOP_ENDPOINT);
   // DataBase
   await connection();
   // await connectRedis();

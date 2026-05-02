@@ -23,3 +23,19 @@ eventEmail.on("confirmEmail",async(data:IEmail) => {
     
   }
 })
+eventEmail.on("resetPassword",async(data:IEmail) => {
+  try{
+    data.subject = "Reset-Account-Password",
+    data.html = verifyEmail(
+      {
+        otp:data.OTP,
+        title:"Reset Code"
+      }
+    ),
+    await sendEmail(data);
+  }
+  catch(err){
+    console.log('Fail to send Email',err);
+    
+  }
+})

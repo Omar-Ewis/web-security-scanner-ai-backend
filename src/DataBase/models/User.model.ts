@@ -26,6 +26,9 @@ export interface IUser {
 
   password:string;
   resetPasswordOTP?:string
+  resetPasswordOTPExpireAt?:Date
+  resetPasswordVerified?: boolean
+  resetPasswordVerifiedAt?:Date
   changeCredentialsTime?:Date
 
   phone?:string
@@ -79,6 +82,12 @@ const userSchema = new Schema<IUser>(
         },
     },
     resetPasswordOTP:String,
+    resetPasswordOTPExpireAt:Date,
+    resetPasswordVerified: {
+      type: Boolean,
+      default: false,
+    },
+    resetPasswordVerifiedAt: Date,
     changeCredentialsTime:Date,
 
     phone:String,

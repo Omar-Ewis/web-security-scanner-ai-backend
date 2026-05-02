@@ -33,4 +33,19 @@ router.post(
   validation(validators.login),
   authService.login
 );
+router.patch(
+  '/send-forgot-password',
+  validation(validators.sendForgotOTPCode),
+  authService.sendForgotOTPCode
+);
+router.patch(
+  '/verify-forgot-password',
+  validation(validators.verifyForgotOTPCode),
+  authService.verifyForgotOTPCode
+);
+router.patch(
+  '/reset-forgot-password',
+  validation(validators.resetForgotPassword),
+  authService.resetForgotPassword
+);
 export default router;

@@ -1,8 +1,23 @@
 import type{ Request , Response} from "express"
-import { IConfirmEmailBodyInputDto, IGmail, ILoginBodyInputDto, IResendConfirmEmailBodyInputDto, ISignupBodyInputDto } from "./auth.dto";
+import { 
+  IConfirmEmailBodyInputDto,
+  IGmail, 
+  ILoginBodyInputDto, 
+  IResendConfirmEmailBodyInputDto, 
+  IResetForgotPassword, 
+  ISendForgotOTPCode,
+  ISignupBodyInputDto, 
+  IVerifyForgotOTPCode
+} from "./auth.dto";
 import { ProviderEnum, UserModel } from "../../DataBase/models/User.model";
 import { UserRepository } from "../../DataBase/repository/user.repository";
-import { BadRequestException, ConflictException, NotFoundException, RateLimitingException } from "../../utils/response/error.response";
+import { 
+  BadRequestException, 
+  ConflictException, 
+  ForbiddenException, 
+  NotFoundException, 
+  RateLimitingException 
+} from "../../utils/response/error.response";
 import { compareHash, generateHash } from "../../utils/security/hash.security";
 import { eventEmail } from "../../utils/events/email.event";
 import { createLoginCredentials } from "../../utils/security/token.security";
@@ -45,7 +60,8 @@ class Authentication {
     )
     eventEmail.emit("confirmEmail",{to:email , OTP})
     return res.status(201).json({message:'Done',data:{user}});
-  }
+  };
+
   confirmEmail = async (req:Request,res:Response):Promise<Response> =>{
     const {email , OTP }:IConfirmEmailBodyInputDto = req.body;
     const user = await this.userModel.findOne({
@@ -98,7 +114,8 @@ class Authentication {
       }
     })
     return res.status(201).json({message:'Done'})
-  }
+  };
+
   resendConfirmEmail = async (req: Request, res: Response):Promise<Response> => {
     const { email } : IResendConfirmEmailBodyInputDto= req.body;
     const user = await this.userModel.findOne({
@@ -128,6 +145,7 @@ class Authentication {
     eventEmail.emit("confirmEmail", { to: email, OTP });
     return res.status(200).json({ message: "New OTP sent." });
   };
+
   login = async (req:Request,res:Response):Promise<Response> => {
     const {email , password}:ILoginBodyInputDto = req.body;
     const user = await this.userModel.findOne({
@@ -159,7 +177,8 @@ class Authentication {
         message:'Done',
         data: {credentials}
     });
-  }
+  };
+
   private async verifyGmailAccount(idToken:string){
       const client = new OAuth2Client();
       const ticket = await client.verifyIdToken({
@@ -172,7 +191,8 @@ class Authentication {
       }
       
       return payload;
-  }
+  };
+
   signupWithGmail = async (req:Request,res:Response) =>{  
     const {idToken}:IGmail= req.body;
     const {email,family_name,given_name,picture} = await this.verifyGmailAccount(idToken);
@@ -205,7 +225,8 @@ class Authentication {
     const credentials = await createLoginCredentials(newUser);
     return res.status(200).json({message:'Done', data:{credentials}})
 
-  }
+  };
+
   loginWithGmail = async (req:Request,res:Response) =>{  
     const {idToken}:IGmail= req.body;
     const {email} = await this.verifyGmailAccount(idToken);
@@ -229,29 +250,161 @@ class Authentication {
     const credentials = await createLoginCredentials(user);
     return res.status(200).json({message:'Done', data:{credentials}})
 
-  }
-  // sendForgotOTPCode= async (req:Request,res:Response) =>{
-  //   const {email} = req.body;
-  //   const user = await this.userModel.findOne({
-  //     filter:{
-  //       email,
-  //       confirmedAt:{ $exists:true },
-  //       provider:ProviderEnum.System
-  //     }
-  //   })
-  //   if(!user){
-  //     throw new NotFoundException('Invalid Account');
-  //   }
-  //   const OTP = Math.floor(100000 + Math.random() * 900000);
-  //   const result = await this.userModel.updateOne(
-  //     {
-  //       filter:{email},
-  //       update:{
-          
-  //       }
-  //     }
-  //   )
+  };
 
-  // } 
+  sendForgotOTPCode = async (req:Request,res:Response):Promise<Response> =>{
+    const {email}: ISendForgotOTPCode = req.body;
+    const user = await this.userModel.findOne({
+      filter:{
+        email,
+        provider: ProviderEnum.System,
+        confirmedAt:{ $exists: true }
+      }
+    })
+    if(!user){
+      throw new NotFoundException(
+        "Account not found or not eligible for this operation."
+      );
+    }
+    const OTP = Math.floor(100000 + Math.random() * 900000);
+    const result = await this.userModel.updateOne({
+      filter: { _id: user._id },
+      update: {
+        $set: {
+          resetPasswordOTP: await generateHash(String(OTP)),
+          resetPasswordOTPExpireAt: new Date(Date.now() + 2 * 60 * 1000),
+          resetPasswordVerified: false,
+        },
+        $unset: {
+          resetPasswordVerifiedAt: "",
+        },
+      },
+    });
+    if(!result.matchedCount){
+      throw new BadRequestException(
+        "Fail to send the reset code please try again later"
+      );
+    }
+    eventEmail.emit("resetPassword",{to:email , OTP});
+    return res.json(
+      {
+        message:"Done"
+      }
+    );
+  };
+
+  verifyForgotOTPCode = async (req: Request, res: Response):Promise<Response> => {
+    const { email, OTP }: IVerifyForgotOTPCode = req.body;
+    const user = await this.userModel.findOne({
+      filter: {
+        email,
+        provider: ProviderEnum.System,
+        resetPasswordOTP: { $exists: true },
+        resetPasswordOTPExpireAt: { $exists: true },
+      },
+    });
+    
+    if (!user) {
+      throw new NotFoundException(
+        "Account not found or not eligible for this operation."
+      );
+    }
+
+    if (
+      !user.resetPasswordOTPExpireAt ||
+      user.resetPasswordOTPExpireAt.getTime() < Date.now()
+    ) {
+      await this.userModel.updateOne({
+        filter: { _id: user._id },
+        update: {
+          $unset: {
+            resetPasswordOTP: "",
+            resetPasswordOTPExpireAt: "",
+          },
+        },
+      });
+
+      throw new ConflictException(
+        "OTP has expired. Please request a new code."
+      );
+    }
+
+    if (!(await compareHash(OTP, user.resetPasswordOTP as string))) {
+      throw new ConflictException("Invalid OTP.");
+    }
+
+    await this.userModel.updateOne({
+      filter: { _id: user._id },
+      update: {
+        $unset: {
+          resetPasswordOTP: "",
+          resetPasswordOTPExpireAt: "",
+        },
+        $set: {
+          resetPasswordVerified: true,
+          resetPasswordVerifiedAt: new Date()
+        }
+      },
+    });
+
+    return res.json({
+      message: "OTP verified successfully.",
+    });
+  };
+
+  resetForgotPassword = async (req: Request, res: Response):Promise<Response> => {
+    const { email, newPassword }: IResetForgotPassword = req.body;
+    const user = await this.userModel.findOne(
+      {
+        filter: {
+          email,
+          provider: ProviderEnum.System,
+        }
+      }
+    );
+
+    if (!user) {
+      throw new NotFoundException("Account not found.");
+    }
+
+    if (!user.resetPasswordVerified) {
+      throw new ForbiddenException("OTP verification required.");
+    }
+
+    if (
+      !user.resetPasswordVerifiedAt ||
+      user.resetPasswordVerifiedAt.getTime() + 5 * 60 * 1000 < Date.now()
+    ) {
+      await this.userModel.updateOne({
+        filter: { _id: user._id },
+        update: {
+          $set: { resetPasswordVerified: false },
+          $unset: { resetPasswordVerifiedAt: "" },
+        },
+      });
+
+      throw new ConflictException("Verification expired. Please verify again.");
+    }
+
+    await this.userModel.updateOne({
+      filter: { _id: user._id },
+      update: {
+        $set: {
+          password: await generateHash(newPassword),
+          changeCredentialsTime: new Date(),
+          resetPasswordVerified: false,
+        },
+        $unset: {
+          resetPasswordVerifiedAt: "",
+          resetPasswordOTP: "",
+          resetPasswordOTPExpireAt: "",
+        },
+      },
+    });
+
+    return res.json({
+      message: "Password reset successfully.",
+    });
+  };
 }
 export default new Authentication();

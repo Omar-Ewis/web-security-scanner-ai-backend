@@ -37,17 +37,35 @@ export const signup = {
 }
 export const confirmEmail = {
   body:z.strictObject({
-    email:generalFeild.email,
-    OTP:generalFeild.OTP
+    email: generalFeild.email,
+    OTP: generalFeild.OTP
   })
 }
 export const resendConfirmEmail = {
   body:z.strictObject({
-    email:generalFeild.email,
+    email: generalFeild.email,
   })
 }
 export const signupWithGmail = {
   body:z.strictObject({
-    idToken:z.string()
+    idToken: z.string()
+  })
+}
+export const sendForgotOTPCode = {
+  body:z.strictObject({
+    email: generalFeild.email,
+  })
+}
+export const verifyForgotOTPCode = {
+  body:sendForgotOTPCode.body.extend({
+    OTP: generalFeild.OTP
+  })
+}
+export const resetForgotPassword = {
+  body:sendForgotOTPCode.body.extend({
+    newPassword: generalFeild.password,
+    confirmNewPassword: generalFeild.confirmPassword
+  }).refine((data)=>{
+    return data.newPassword === data.confirmNewPassword;
   })
 }

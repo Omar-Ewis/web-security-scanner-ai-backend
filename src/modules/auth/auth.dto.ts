@@ -11,3 +11,6 @@ export type IConfirmEmailBodyInputDto = z.infer<typeof validators.confirmEmail.b
 export type IResendConfirmEmailBodyInputDto = z.infer<typeof validators.resendConfirmEmail.body>
 export type ILoginBodyInputDto = z.infer<typeof validators.login.body>
 export type IGmail = z.infer<typeof validators.signupWithGmail.body>
+export type ISendForgotOTPCode = z.infer<typeof validators.sendForgotOTPCode.body>
+export type IVerifyForgotOTPCode = z.infer<typeof validators.verifyForgotOTPCode.body>
+export type IResetForgotPassword = z.infer<typeof validators.resetForgotPassword.body>

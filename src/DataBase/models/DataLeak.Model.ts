@@ -9,7 +9,6 @@ const EmailSchema = new Schema<IEmail>(
     email: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
       lowercase: true,
     },
