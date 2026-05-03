@@ -176,7 +176,7 @@ class Authentication {
         token: FCM,
       });
     }
-    
+
     const credentials = await createLoginCredentials(user)
     return res.status(201).json(
       {

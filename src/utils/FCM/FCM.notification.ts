@@ -1,24 +1,27 @@
 import admin from "firebase-admin";
-import { readFileSync } from "fs";
-import { resolve } from "path";
 
 export class NotificationService {
   private client: admin.app.App;
 
   constructor() {
-    const serviceAccountPath = resolve(
-      process.cwd(),
-      "config",
-      "black-cat-38cs-417c5-firebase-adminsdk-fbsvc-47ff3aa641.json"
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT is missing");
+    }
+
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+
+    serviceAccount.private_key = serviceAccount.private_key.replace(
+      /\\n/g,
+      "\n"
     );
 
-    const serviceAccount = JSON.parse(
-      readFileSync(serviceAccountPath, "utf-8")
-    );
-
-    this.client = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
+    if (admin.apps.length) {
+      this.client = admin.app();
+    } else {
+      this.client = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    }
   }
 
   async sendNotification({
@@ -28,12 +31,14 @@ export class NotificationService {
     token: string;
     data: { title: string; body: string };
   }) {
-    const message = {
+    return await this.client.messaging().send({
       token,
+      notification: {
+        title: data.title,
+        body: data.body,
+      },
       data,
-    };
-
-    return await this.client.messaging().send(message);
+    });
   }
 
   async sendNotifications({
@@ -46,9 +51,7 @@ export class NotificationService {
     if (!tokens.length) return [];
 
     const results = await Promise.allSettled(
-      tokens.map((token) => {
-        return this.sendNotification({ token, data });
-      })
+      tokens.map((token) => this.sendNotification({ token, data }))
     );
 
     return results;
