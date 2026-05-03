@@ -1,11 +1,17 @@
 import {z} from 'zod';
 import { generalFeild } from '../../middleware/validation.middleware';
 export const login = {
-  body:z.strictObject({
-      email:generalFeild.email,
-      password:generalFeild.password,
-    })
-}
+  body: z.strictObject({
+    email: generalFeild.email,
+    password: generalFeild.password,
+
+    FCM: z
+      .string()
+      .min(10, "Invalid FCM token")
+      .optional()
+      .nullable(),
+  }),
+};
 export const signup = {
   body:login.body.extend(
     {

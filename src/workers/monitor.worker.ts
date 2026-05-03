@@ -4,6 +4,8 @@ import { ScanModel, ScanStatusEnum } from "../DataBase/models/Scan.Model";
 import { VulnerabilityModel } from "../DataBase/models/Vulnerability.Model";
 import { ZAP_APIS } from "../utils/security.api";
 import { bullmqConnection } from "../utils/bullmq.redis";
+import { getUserTokens } from "../utils/FCM/FCM.service";
+import { notificationService } from "../utils/FCM/FCM.notification";
 
 interface IMonitorJobData {
   scanId: string;
@@ -134,6 +136,22 @@ export const monitorWorker = new Worker(
       });
 
       console.log(`Scan ${scanId} is now COMPLETED`);
+      const completedScan = await ScanModel.findById(scanId).select("userId");
+
+      if (completedScan?.userId) {
+        const tokens = await getUserTokens(completedScan.userId);
+
+        if (tokens.length > 0) {
+          await notificationService.sendNotifications({
+            tokens,
+            data: {
+              title: "Scan Finished",
+              body: "Your scan has been completed. Check the results.",
+            },
+          });
+        }
+      }
+
     } catch (error: any) {
       console.error(
         "Caught error in monitor worker:",

@@ -22,6 +22,7 @@ import { compareHash, generateHash } from "../../utils/security/hash.security";
 import { eventEmail } from "../../utils/events/email.event";
 import { createLoginCredentials } from "../../utils/security/token.security";
 import {OAuth2Client} from 'google-auth-library';
+import { saveToken } from "../../utils/FCM/FCM.service";
 class Authentication {
   private userModel = new UserRepository(UserModel);
   constructor(){} 
@@ -147,7 +148,7 @@ class Authentication {
   };
 
   login = async (req:Request,res:Response):Promise<Response> => {
-    const {email , password}:ILoginBodyInputDto = req.body;
+    const {email, password, FCM}:ILoginBodyInputDto = req.body;
     const user = await this.userModel.findOne({
       filter: {
         email,
@@ -169,7 +170,12 @@ class Authentication {
     user.sessionCreatedAt = now;
     await user.save();
 
-    console.log(user.sessionCreatedAt);
+    if (FCM && FCM.length > 10) {
+      await saveToken({
+        userId: user._id,
+        token: FCM,
+      });
+    }
     
     const credentials = await createLoginCredentials(user)
     return res.status(201).json(

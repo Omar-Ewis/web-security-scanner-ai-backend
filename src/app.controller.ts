@@ -1,8 +1,8 @@
 // Import ENV
-import {resolve} from 'node:path';
+// import {resolve} from 'node:path';
 import {config} from 'dotenv';
-config({path:resolve("./config/.env.development")});
-// config();
+// config({path:resolve("./config/.env.development")});
+config();
 
 // Load Express and Express Type
 import type {Express, Request, Response} from 'express' 
@@ -19,6 +19,7 @@ import userController from './modules/user/user.controller'
 import scanController from './modules/scan/scan.controller'
 import { globalErrorHandling } from './utils/response/error.response';
 import connection from './DataBase/connections.db';
+import { notificationService } from './utils/FCM/FCM.notification';
 // import { connectRedis } from './DataBase/redis.connection.db';
 const limiter = rateLimit({
     windowMs:60 * 60000,
@@ -36,6 +37,19 @@ const bootStrap = async() : Promise<void> =>{
   // await connectRedis();
   
   // app-routing
+  app.post('/send-notification',async (req:Request,res:Response,next)=>{
+    console.log({token: req.body.token});
+    await notificationService.sendNotification({
+      token:req.body.token,
+      data:{
+        title:"Scan Service Finishing",
+        body:"Hi Omar your scaning is done please check for the result."
+      }
+    })
+    res.json({message:`Welcome to ${process.env.APPLICATION_NAME} Back-End landing page 🔥`});
+  })
+
+
   app.get('/', (req:Request,res:Response,next)=>{
     res.json({message:`Welcome to ${process.env.APPLICATION_NAME} Back-End landing page 🔥`});
   })
