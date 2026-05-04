@@ -31,6 +31,7 @@ const limiter = rateLimit({
 const bootStrap = async() : Promise<void> =>{
   const app : Express= express();
   const port : number | string = process.env.PORT || 5000;
+  app.set("trust proxy", 1);
   app.use(cors(),express.json() , helmet() , limiter);
   // DataBase
   await connection();
