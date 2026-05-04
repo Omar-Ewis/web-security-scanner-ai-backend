@@ -44,7 +44,7 @@ class Authentication {
     // generate OTP
     const OTP = Math.floor(100000 + Math.random() * 900000);
     let confirmEmailOTPAttempts = 0;
-    const user = await this.userModel.createUser(
+    await this.userModel.createUser(
       {
         data:[
           {
