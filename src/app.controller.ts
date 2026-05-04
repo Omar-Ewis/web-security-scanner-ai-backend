@@ -22,17 +22,25 @@ import connection from './DataBase/connections.db';
 import { notificationService } from './utils/FCM/FCM.notification';
 // import { connectRedis } from './DataBase/redis.connection.db';
 const limiter = rateLimit({
-    windowMs:60 * 60000,
-    limit:2000,
-    message:{error:"To Many Request Please Try Again Later"},
-    statusCode:429
-  });
+  windowMs: 60 * 60000,
+  limit: 2000,
+  message: { error: "Too Many Requests Please Try Again Later" },
+  statusCode: 429,
+
+  validate: {
+    xForwardedForHeader: false,
+  },
+});
 
 const bootStrap = async() : Promise<void> =>{
   const app : Express= express();
   const port : number | string = process.env.PORT || 5000;
   app.set("trust proxy", 1);
-  app.use(cors(),express.json() , helmet() , limiter);
+
+  app.use(cors());
+  app.use(express.json());
+  app.use(helmet());
+  app.use(limiter);
   // DataBase
   await connection();
   // await connectRedis();
