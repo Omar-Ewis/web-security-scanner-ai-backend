@@ -48,7 +48,9 @@ const bootStrap = async() : Promise<void> =>{
     })
     res.json({message:`Welcome to ${process.env.APPLICATION_NAME} Back-End landing page 🔥`});
   })
-
+  console.log(process.env.EMAIL);
+  console.log(process.env.EMAIL_PASSWORD);
+  
 
   app.get('/', (req:Request,res:Response,next)=>{
     res.json({message:`Welcome to ${process.env.APPLICATION_NAME} Back-End landing page 🔥`});
