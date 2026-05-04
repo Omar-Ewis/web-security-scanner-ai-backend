@@ -1,5 +1,6 @@
 import { createTransport } from "nodemailer";
 import Mail from "nodemailer/lib/mailer";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { BadRequestException } from "../response/error.response";
 
 export const sendEmail = async (data: Mail.Options): Promise<void> => {
@@ -8,34 +9,34 @@ export const sendEmail = async (data: Mail.Options): Promise<void> => {
       throw new BadRequestException("Missing email content");
     }
 
-    console.log({
-      EMAIL: process.env.EMAIL,
-      EMAIL_PASSWORD_EXISTS: Boolean(process.env.EMAIL_PASSWORD),
-      EMAIL_PASSWORD_LENGTH: process.env.EMAIL_PASSWORD?.length,
-      APP_NAME: process.env.APP_NAME,
-    });
+    const EMAIL_HOST = process.env.EMAIL_HOST || "smtp.gmail.com";
+    const EMAIL_PORT = Number(process.env.EMAIL_PORT || 587);
+    const EMAIL_USER = process.env.EMAIL_USER as string;
+    const EMAIL_PASS = (process.env.EMAIL_PASS as string).replace(/\s/g, "");
 
-    const transporter = createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: false,
-
+    const transportOptions: SMTPTransport.Options = {
+      host: EMAIL_HOST,
+      port: EMAIL_PORT,
+      secure: EMAIL_PORT === 465,
       auth: {
-        user: process.env.EMAIL as string,
-        pass: process.env.EMAIL_PASSWORD as string,
+        user: EMAIL_USER,
+        pass: EMAIL_PASS,
       },
-      
       connectionTimeout: 30000,
       greetingTimeout: 30000,
       socketTimeout: 30000,
-    });
+    };
+
+    const transporter = createTransport(transportOptions);
 
     await transporter.verify();
     console.log("SMTP server is ready");
 
     const info = await transporter.sendMail({
       ...data,
-      from: `"${process.env.APP_NAME || "Black Cat"} 🍀" <${process.env.EMAIL}>`,
+      from:
+        process.env.EMAIL_FROM ||
+        `"${process.env.APP_NAME || "Black Cat"} 🍀" <${EMAIL_USER}>`,
     });
 
     console.log("Message sent:", info.messageId);
