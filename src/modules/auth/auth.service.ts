@@ -60,7 +60,7 @@ class Authentication {
       }
     )
     eventEmail.emit("confirmEmail",{to:email , OTP})
-    return res.status(201).json({message:'Done',data:{user}});
+    return res.status(201).json({message:'Done'});
   };
 
   confirmEmail = async (req:Request,res:Response):Promise<Response> =>{
