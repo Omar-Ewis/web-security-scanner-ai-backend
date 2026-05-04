@@ -33,10 +33,6 @@ export class NotificationService {
   }) {
     return await this.client.messaging().send({
       token,
-      notification: {
-        title: data.title,
-        body: data.body,
-      },
       data,
     });
   }

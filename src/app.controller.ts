@@ -57,6 +57,7 @@ const bootStrap = async() : Promise<void> =>{
     })
     res.json({message:`Welcome to ${process.env.APPLICATION_NAME} Back-End landing page 🔥`});
   })
+
 console.log("EMAIL exists:", !!process.env.EMAIL);
 console.log("PASS length:", process.env.EMAIL_PASSWORD?.length);
   
