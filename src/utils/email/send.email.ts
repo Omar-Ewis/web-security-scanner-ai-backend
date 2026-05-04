@@ -16,11 +16,18 @@ export const sendEmail = async (data: Mail.Options): Promise<void> => {
     });
 
     const transporter = createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+
       auth: {
         user: process.env.EMAIL as string,
         pass: process.env.EMAIL_PASSWORD as string,
       },
+
+      connectionTimeout: 30000,
+      greetingTimeout: 30000,
+      socketTimeout: 30000,
     });
 
     await transporter.verify();

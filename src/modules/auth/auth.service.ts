@@ -23,8 +23,6 @@ import { eventEmail } from "../../utils/events/email.event";
 import { createLoginCredentials } from "../../utils/security/token.security";
 import {OAuth2Client} from 'google-auth-library';
 import { saveToken } from "../../utils/FCM/FCM.service";
-import { verifyEmail } from "../../utils/email/templet.email";
-import { sendEmail } from "../../utils/email/send.email";
 class Authentication {
   private userModel = new UserRepository(UserModel);
   constructor(){} 
@@ -61,11 +59,7 @@ class Authentication {
         ]
       }
     )
-    await sendEmail({
-      to: email,
-      subject: "Confirm Email",
-      html: verifyEmail({ otp: OTP, title: "Confirm Email" }),
-    });
+    eventEmail.emit("confirmEmail",{to:email , OTP})
     return res.status(201).json({message:'Done'});
   };
 
