@@ -17,7 +17,7 @@ export const sendEmail = async (data: Mail.Options): Promise<void> => {
 
     const transporter = createTransport({
       host: "smtp.gmail.com",
-      port: 465,
+      port: 587,
       secure: true,
 
       auth: {
