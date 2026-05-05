@@ -44,7 +44,8 @@ export interface IScan {
 
   startedAt?: Date | null;
   finishedAt?: Date | null;
-
+  durationInSeconds?: number | null;
+  durationText?: string | null;
   failureReason?: string | null;
 
   result?: IResult | null;
@@ -152,7 +153,16 @@ const scanSchema = new Schema<IScan>(
       type: Date,
       default: null,
     },
+    durationInSeconds: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
 
+    durationText: {
+      type: String,
+      default: null,
+    },
     failureReason: {
       type: String,
       default: null,

@@ -117,38 +117,67 @@ export const monitorWorker = new Worker(
         return;
       }
 
-      await ScanModel.findByIdAndUpdate(scanId, {
-        progress: 100,
-        status: ScanStatusEnum.COMPLETED,
-        finishedAt: new Date(),
-        failureReason: null,
-        result: {
-          baseUrl: resultData.baseUrl ?? "",
-          alertsCount: resultData.alerts_count ?? 0,
-          summaryTotal: resultData.summary_total ?? 0,
-          summary: {
-            high: resultData.summary?.High ?? 0,
-            medium: resultData.summary?.Medium ?? 0,
-            low: resultData.summary?.Low ?? 0,
-            informational: resultData.summary?.Informational ?? 0,
+      const finishedAt = new Date();
+
+      const scanDocForDuration = await ScanModel.findById(scanId).select("startedAt");
+
+      if (!scanDocForDuration?.startedAt) {
+        throw new Error("startedAt is missing");
+      }
+
+      const durationMs =
+        finishedAt.getTime() - scanDocForDuration.startedAt.getTime();
+
+      const durationInSeconds = Math.floor(durationMs / 1000);
+
+      const minutes = Math.floor(durationInSeconds / 60);
+      const seconds = durationInSeconds % 60;
+
+      const durationText = `${minutes}m ${seconds}s`;
+
+      const updatedScan = await ScanModel.findByIdAndUpdate(
+        scanId,
+        {
+          progress: 100,
+          status: ScanStatusEnum.COMPLETED,
+          finishedAt,
+          durationInSeconds,
+          durationText,
+          failureReason: null,
+          result: {
+            baseUrl: resultData.baseUrl ?? "",
+            alertsCount: resultData.alerts_count ?? 0,
+            summaryTotal: resultData.summary_total ?? 0,
+            summary: {
+              high: resultData.summary?.High ?? 0,
+              medium: resultData.summary?.Medium ?? 0,
+              low: resultData.summary?.Low ?? 0,
+              informational: resultData.summary?.Informational ?? 0,
+            },
           },
         },
-      });
+        {
+          new: true,
+        }
+      );
 
       console.log(`Scan ${scanId} is now COMPLETED`);
-      const completedScan = await ScanModel.findById(scanId).select("userId");
 
-      if (completedScan?.userId) {
-        const tokens = await getUserTokens(completedScan.userId);
+      if (updatedScan?.userId) {
+        const tokens = await getUserTokens(updatedScan.userId);
 
         if (tokens.length > 0) {
           await notificationService.sendNotifications({
             tokens,
             data: {
               title: "Scan Finished",
-              body: "Your scan has been completed. Check the results.",
+              body: `Your scan has been completed in ${durationText}. Check the results.`,
             },
           });
+
+          console.log(`Notification sent for scan ${scanId}`);
+        } else {
+          console.log(`No active FCM tokens found for user ${updatedScan.userId}`);
         }
       }
 
