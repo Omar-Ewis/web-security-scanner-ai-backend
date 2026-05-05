@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
-dotenv.config({ path: "config/.env.development" });
-// dotenv.config();
+// dotenv.config({ path: "config/.env.development" });
+dotenv.config();
 
 import connection from "../DataBase/connections.db";
 
