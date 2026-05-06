@@ -104,7 +104,7 @@ export const getScanResult = async (
   const scanDoc = await ScanModel.findOne({
     _id: scanId,
     userId: req.user.id,
-  }).select("target status startedAt finishedAt result failureReason");
+  }).select("target status scanType startedAt finishedAt durationText result failureReason");
 
   if (!scanDoc) {
     throw new NotFoundException("Scan not found");
@@ -202,7 +202,7 @@ export const getAllScans = async (req: Request, res: Response) => {
     throw new UnauthorizedException("Unauthorized");
   }
 
-  const { page = "1", limit = "10", status } = req.query as {
+  const { page = "1", limit = "5", status } = req.query as {
     page?: string;
     limit?: string;
     status?: string;
@@ -215,7 +215,7 @@ export const getAllScans = async (req: Request, res: Response) => {
     Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   const limitNumber =
-    Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10;
+    Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 5;
 
   const filter: Record<string, unknown> = {
     userId: req.user.id,
@@ -229,9 +229,7 @@ export const getAllScans = async (req: Request, res: Response) => {
     .sort({ createdAt: -1 })
     .skip((pageNumber - 1) * limitNumber)
     .limit(limitNumber)
-    .select(
-      "target scanType status progress startedAt finishedAt failureReason createdAt"
-    );
+    .select("-jobId -monitorJobId -zapScanId");
 
   const total = await ScanModel.countDocuments(filter);
 
@@ -340,4 +338,41 @@ export const stopScan = async (
       zapResponse: zapResponse.data,
     },
   });
+};
+
+export const generateReportAI = async (req: Request, res: Response) => {
+  const { generateType } = req.body;
+  const { scanId } = req.params;
+
+  const vulnerabilitiesType = await VulnerabilityModel.find({
+    scanId,
+    risk: generateType,
+  }).lean();
+
+  if (!vulnerabilitiesType.length) {
+    throw new NotFoundException("No vulnerabilities found for this type");
+  }
+
+  const aiResponse = await axios.post(
+    "https://your-ai-api-url/generate-report",
+    {
+      vulnerabilities: vulnerabilitiesType,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      responseType: "arraybuffer",
+    }
+  );
+
+  const fileName = `Black-Cat-${generateType}-vulnerabilities-report.pdf`;
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${fileName}"`
+  );
+
+  return res.status(200).send(aiResponse.data);
 };

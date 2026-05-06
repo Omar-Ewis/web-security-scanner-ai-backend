@@ -17,6 +17,7 @@ import {rateLimit} from 'express-rate-limit';
 import authController from './modules/auth/auth.controller'
 import userController from './modules/user/user.controller'
 import scanController from './modules/scan/scan.controller'
+import chatController from './modules/Chatbot/bot.controller'
 import { globalErrorHandling } from './utils/response/error.response';
 import connection from './DataBase/connections.db';
 import { notificationService } from './utils/FCM/FCM.notification';
@@ -58,10 +59,6 @@ const bootStrap = async() : Promise<void> =>{
     res.json({message:`Welcome to ${process.env.APPLICATION_NAME} Back-End landing page 🔥`});
   })
 
-console.log("EMAIL exists:", !!process.env.EMAIL);
-console.log("PASS length:", process.env.EMAIL_PASSWORD?.length);
-  
-
   app.get('/', (req:Request,res:Response,next)=>{
     res.json({message:`Welcome to ${process.env.APPLICATION_NAME} Back-End landing page 🔥`});
   })
@@ -70,6 +67,7 @@ console.log("PASS length:", process.env.EMAIL_PASSWORD?.length);
   app.use('/auth',authController);
   app.use('/user',userController);
   app.use('/scan',scanController);
+  app.use('/chat',chatController);
 
 
   // global-error-handling
