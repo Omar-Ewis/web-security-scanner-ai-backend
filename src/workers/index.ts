@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
-// dotenv.config({ path: "config/.env.development" });
-dotenv.config();
+dotenv.config({ path: "config/.env.development" });
+// dotenv.config();
 
 import connection from "../DataBase/connections.db";
 
@@ -11,6 +11,7 @@ const bootstrapWorkers = async () => {
 
     await import("./prepare.worker");
     await import("./monitor.worker");
+    await import("./report.worker");
     console.log("Workers started");
   } catch (error) {
     console.error("Workers bootstrap failed:", error);

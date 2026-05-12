@@ -1,8 +1,8 @@
 // Import ENV
-// import {resolve} from 'node:path';
+import {resolve} from 'node:path';
 import {config} from 'dotenv';
-// config({path:resolve("./config/.env.development")});
-config();
+config({path:resolve("./config/.env.development")});
+// config();
 
 // Load Express and Express Type
 import type {Express, Request, Response} from 'express' 
@@ -18,6 +18,7 @@ import authController from './modules/auth/auth.controller'
 import userController from './modules/user/user.controller'
 import scanController from './modules/scan/scan.controller'
 import chatController from './modules/Chatbot/bot.controller'
+import reportsController from './modules/Report/report.controller'
 import { globalErrorHandling } from './utils/response/error.response';
 import connection from './DataBase/connections.db';
 import { notificationService } from './utils/FCM/FCM.notification';
@@ -68,6 +69,7 @@ const bootStrap = async() : Promise<void> =>{
   app.use('/user',userController);
   app.use('/scan',scanController);
   app.use('/chat',chatController);
+  app.use('/reports',reportsController);
 
 
   // global-error-handling

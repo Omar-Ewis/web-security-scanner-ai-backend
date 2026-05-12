@@ -53,13 +53,12 @@ router.patch(
   validation(scanIdSchema),
   scanService.stopScan
 );
-// router.post(
-//   "/:scanId/generate-report",
-//   authentication(),
-//   // validation(scanIdSchema),
-//   scanService.generateReportAI
-// );
-router.get("/:scanId/ai-report", scanService.generateReportAI);
+router.delete(
+  "/:scanId",
+  authentication(),
+  scanService.deleteScan
+);
+
 
 
 export default router;

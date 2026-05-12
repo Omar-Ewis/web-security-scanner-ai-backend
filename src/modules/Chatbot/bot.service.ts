@@ -6,7 +6,7 @@ import {
   ChatRoleEnum,
 } from "../../DataBase/models/ChatMessage.Model";
 
-import { UnauthorizedException } from "../../utils/response/error.response";
+import { NotFoundException, UnauthorizedException } from "../../utils/response/error.response";
 
 export const generateAIReply = async (
   message: string
@@ -70,8 +70,8 @@ export const getSessionMessages = async (
   }).lean();
 
   if (!session) {
-    throw new UnauthorizedException(
-      "You are not allowed to access this session"
+    throw new NotFoundException(
+      "This Session Not Found"
     );
   }
 
@@ -155,5 +155,40 @@ export const sendMessage = async (
   return res.status(201).json({
     message: "Message sent successfully",
     data: assistantMessage,
+  });
+};
+
+export const deleteSession = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  if (!req.user) {
+    throw new UnauthorizedException("Unauthorized");
+  }
+
+  const { sessionId } = req.params;
+
+  const session = await ChatSessionModel.findOne({
+    _id: sessionId,
+    userId: req.user._id,
+  });
+
+  if (!session) {
+    throw new UnauthorizedException(
+      "You are not allowed to delete this session"
+    );
+  }
+
+  // delete all messages in this session
+  await ChatMessageModel.deleteMany({
+    sessionId,
+    userId: req.user._id,
+  });
+
+  // delete session itself
+  await ChatSessionModel.findByIdAndDelete(sessionId);
+
+  return res.status(200).json({
+    message: "Session deleted successfully",
   });
 };

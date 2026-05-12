@@ -7,7 +7,8 @@ import { Types } from "mongoose";
 import { VulnerabilityModel } from "../../DataBase/models/Vulnerability.Model";
 import axios from "axios";
 import { ZAP_APIS } from "../../utils/security.api";
-import puppeteer from "puppeteer";
+import { ReportModel } from "../../DataBase/models/aiReport.Model";
+import cloudinary from "../../utils/cloudinary/cloudinary";
 
 
 export const normalScan = async (req: Request, res: Response) => {
@@ -341,331 +342,58 @@ export const stopScan = async (
   });
 };
 
-// export const generateReportAI = async (req: Request, res: Response) => {
-//   const { generateType } = req.body;
-//   const { scanId } = req.params;
-
-//   const vulnerabilitiesType = await VulnerabilityModel.find({
-//     scanId, 
-//     risk: generateType,
-//   })
-//   .limit(10)
-//   .select("url alert param attack risk")
-//   .lean();
-
-//   if (!vulnerabilitiesType.length) {
-//     throw new NotFoundException("No vulnerabilities found for this type.");
-//   }
-
-//   const aiResponse = await axios.post(
-//     "https://facing-action-earthly.ngrok-free.dev/generate-report",
-//     {
-//       vulnerabilityToAI:vulnerabilitiesType,
-//     },
-//     {
-//       headers: {
-//         "Content-Type": "application/json",
-//         Accept:"application/pdf"
-//       },
-//       responseType: "arraybuffer",
-//     }
-//   );
-
-//   const fileName = `Black-Cat-${generateType}-vulnerabilities-report.pdf`;
-
-//   res.setHeader("Content-Type", "application/pdf");
-//   res.setHeader(
-//     "Content-Disposition",
-//     `attachment; filename="${fileName}"`
-//   );
-//   console.log(aiResponse.data);
-//   return res.status(200).send(aiResponse.data);
-// };
-const fakeGenerateReportAI = async () => {
-  return {
-    vulnerabilities: [
-      {
-        title: "SQL Injection in Login Endpoint",
-        summary:
-          "The login endpoint is vulnerable to SQL Injection via the username parameter.",
-        steps_to_reproduce: [
-          "Go to the login page",
-          "Enter SQL payload",
-          "Submit request",
-          "Observe authentication bypass",
-        ],
-        impact: "Full database compromise and authentication bypass.",
-      },
-            {
-        title: "SQL Injection in Login Endpoint",
-        summary:
-          "The login endpoint is vulnerable to SQL Injection via the username parameter.",
-        steps_to_reproduce: [
-          "Go to the login page",
-          "Enter SQL payload",
-          "Submit request",
-          "Observe authentication bypass",
-        ],
-        impact: "Full database compromise and authentication bypass.",
-      },
-            {
-        title: "SQL Injection in Login Endpoint",
-        summary:
-          "The login endpoint is vulnerable to SQL Injection via the username parameter.",
-        steps_to_reproduce: [
-          "Go to the login page",
-          "Enter SQL payload",
-          "Submit request",
-          "Observe authentication bypass",
-        ],
-        impact: "Full database compromise and authentication bypass.",
-      },
-            {
-        title: "SQL Injection in Login Endpoint",
-        summary:
-          "The login endpoint is vulnerable to SQL Injection via the username parameter.",
-        steps_to_reproduce: [
-          "Go to the login page",
-          "Enter SQL payload",
-          "Submit request",
-          "Observe authentication bypass",
-        ],
-        impact: "Full database compromise and authentication bypass.",
-      },
-            {
-        title: "SQL Injection in Login Endpoint",
-        summary:
-          "The login endpoint is vulnerable to SQL Injection via the username parameter.",
-        steps_to_reproduce: [
-          "Go to the login page",
-          "Enter SQL payload",
-          "Submit request",
-          "Observe authentication bypass",
-        ],
-        impact: "Full database compromise and authentication bypass.",
-      },
-      {
-        title: "Reflected Cross-Site Scripting (XSS) in Search",
-        summary:
-          "The search feature reflects user input directly into the HTML response.",
-        steps_to_reproduce: [
-          "Navigate to search page",
-          "Inject script payload",
-          "Submit request",
-          "Observe script execution",
-        ],
-        impact: "Session hijacking and credential theft.",
-      },
-      {
-        title: "Insecure Direct Object Reference (IDOR)",
-        summary:
-          "The API endpoint does not validate ownership of requested resources.",
-        steps_to_reproduce: [
-          "Login with valid account",
-          "Modify user ID",
-          "Send request",
-          "Observe unauthorized access",
-        ],
-        impact: "Unauthorized access to sensitive user information.",
-      },
-    ],
-  };
-};
-
-export const generateReportAI = async (
-  req: Request,
+export const deleteScan = async (
+  req: Request<IScanIdParamsInputDto>,
   res: Response
-): Promise<void> => {
+) => {
+  if (!req.user) {
+    throw new UnauthorizedException("Unauthorized");
+  }
+
   const { scanId } = req.params;
-  const { typeOfRisk } = req.query;
 
-  if (!typeOfRisk || typeof typeOfRisk !== "string") {
-    throw new BadRequestException("risk query is required.");
-  }
-
-  const allowRisksType = [
-    "All",
-    "High",
-    "Medium",
-    "Low",
-
-  ];
-
-  if (!allowRisksType.includes(typeOfRisk)) {
-    throw new BadRequestException(
-      "Invalid risk type. Allowed: All, High, Medium, Low, Informational"
-    );
-  }
-
-  const filter =
-    typeOfRisk === "All"
-      ? { scanId }
-      : {
-          scanId,
-          risk: typeOfRisk,
-        };
-
-  const vulnerabilities = await VulnerabilityModel.find(filter)
-    .select("url alert param attack risk")
-    .lean();
-
-  if (!vulnerabilities.length) {
-    throw new NotFoundException(
-      `No ${typeOfRisk} vulnerabilities found.`
-    );
-  }
-
-  const aiResponse = await fakeGenerateReportAI();
-
-  const vulnerabilitiesHtml = aiResponse.vulnerabilities
-    .map(
-      (vulnerability, index) => `
-        <div class="page">
-
-          <h2>${index + 1}. ${vulnerability.title}</h2>
-
-          <h3>Summary</h3>
-          <p>${vulnerability.summary}</p>
-
-          <h3>Steps To Reproduce</h3>
-
-          <ul>
-            ${vulnerability.steps_to_reproduce
-              .map((step) => `<li>${step}</li>`)
-              .join("")}
-          </ul>
-
-          <h3>Impact</h3>
-          <p>${vulnerability.impact}</p>
-
-        </div>
-      `
-    )
-    .join("");
-
-  const html = `
-    <html>
-      <head>
-        <style>
-          * {
-            box-sizing: border-box;
-          }
-
-          body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            color: #111827;
-            background: white;
-          }
-
-          .report-header {
-            padding: 30px 40px 10px;
-          }
-
-          h1 {
-            color: #0f172a;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-          }
-
-          h2 {
-            color: #dc2626;
-            margin-top: 0;
-            margin-bottom: 20px;
-          }
-
-          h3 {
-            color: #1f2937;
-            margin-bottom: 8px;
-            margin-top: 20px;
-          }
-
-          p,
-          li {
-            font-size: 14px;
-            line-height: 1.8;
-          }
-
-          ul {
-            padding-left: 20px;
-          }
-
-          .meta {
-            font-size: 13px;
-            color: #6b7280;
-            margin: 4px 0;
-          }
-
-          .page {
-            margin: 30px 40px;
-
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 24px;
-
-            background: #f9fafb;
-
-            break-after: page;
-            page-break-after: always;
-          }
-
-          .page:last-child {
-            break-after: auto;
-            page-break-after: auto;
-          }
-        </style>
-      </head>
-
-      <body>
-
-        <div class="report-header">
-          <h1>Black Cat AI Security Report</h1>
-
-          <p class="meta">Scan ID: ${scanId}</p>
-          <p class="meta">Risk Type: ${typeOfRisk}</p>
-          <p class="meta">
-            Total Vulnerabilities: ${vulnerabilities.length}
-          </p>
-        </div>
-
-        ${vulnerabilitiesHtml}
-
-      </body>
-    </html>
-  `;
-
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  const scanDoc = await ScanModel.findOne({
+    _id: scanId,
+    userId: req.user.id,
   });
 
-  const page = await browser.newPage();
+  if (!scanDoc) {
+    throw new NotFoundException("Scan not found");
+  }
 
-  await page.setContent(html, {
-    waitUntil: "networkidle0",
+  // get reports first
+  const reports = await ReportModel.find({
+    scanId,
+    userId: req.user.id,
   });
 
-  const pdfBuffer = await page.pdf({
-    format: "A4",
-    printBackground: true,
-    margin: {
-      top: "20px",
-      right: "20px",
-      bottom: "20px",
-      left: "20px",
-    },
+  // delete pdfs from cloudinary
+  for (const report of reports) {
+    if (report.cloudinaryPublicId) {
+      await cloudinary.uploader.destroy(
+        report.cloudinaryPublicId,
+        {
+          resource_type: "raw",
+        }
+      );
+    }
+  }
+
+  // delete reports
+  await ReportModel.deleteMany({
+    scanId,
+    userId: req.user.id,
   });
 
-  await browser.close();
+  // delete vulnerabilities
+  await VulnerabilityModel.deleteMany({
+    scanId,
+  });
 
-  res.setHeader("Content-Type", "application/pdf");
+  // delete scan
+  await ScanModel.findByIdAndDelete(scanId);
 
-  res.setHeader(
-    "Content-Disposition",
-    `inline; filename="black-cat-${typeOfRisk}-report.pdf"`
-  );
-
-  res.send(pdfBuffer);
+  return res.status(200).json({
+    message: "Scan deleted successfully",
+  });
 };

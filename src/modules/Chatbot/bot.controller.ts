@@ -28,4 +28,10 @@ router.post(
   botService.sendMessage
 );
 
+router.delete(
+  "/sessions/:sessionId",
+  authentication(),
+  botService.deleteSession
+);
+
 export default router;
