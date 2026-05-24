@@ -7,12 +7,7 @@ import {
 } from "../../DataBase/models/ChatMessage.Model";
 
 import { NotFoundException, UnauthorizedException } from "../../utils/response/error.response";
-
-export const generateAIReply = async (
-  message: string
-): Promise<string> => {
-  return `Fake AI response for: ${message}`;
-};
+import axios from "axios"
 
 export const createSession = async (
   req: Request,
@@ -117,11 +112,6 @@ export const sendMessage = async (
     content: message,
   });
 
-  /*
-    Later:
-    Use history with real AI
-  */
-
   // const history = (
   //   await ChatMessageModel.find({
   //     sessionId,
@@ -132,7 +122,20 @@ export const sendMessage = async (
   //     .lean()
   // ).reverse();
 
-  const aiReply = await generateAIReply(message);
+  const aiResponse = await axios.post(
+    process.env.AI_CHATBOT_API_URL as string,
+    {
+      question: message,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      timeout: 1000 * 60 * 5,
+    }
+  );
+
+  const aiReply = aiResponse.data?.answer || "No AI response";
 
   const assistantMessage = await ChatMessageModel.create({
     sessionId,
@@ -143,12 +146,10 @@ export const sendMessage = async (
 
   if (session.title === "New Chat") {
     session.title =
-      message.length > 30
-        ? message.slice(0, 30) + "..."
-        : message;
+      message.length > 30 ? message.slice(0, 30) + "..." : message;
   }
 
-  session.lastMessage = message;
+  session.lastMessage = aiReply;
 
   await session.save();
 
