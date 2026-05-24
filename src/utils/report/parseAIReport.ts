@@ -1,64 +1,137 @@
+const cleanMarkdown = (value: string) => {
+  return value
+    .replace(/```/g, "")
+    .replace(/\r/g, "")
+    .replace(/\btxt\b/g, "")
+    .replace(/\n\s*\n/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "")
+    .join("\n")
+    .trim();
+};
+
+const escapeHtml = (value: string) => {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 export const parseAIReport = (text: string) => {
+  const safeText = text || "";
+
   const title =
-    text.match(/\*\*(.*?)\*\*/)?.[1]?.trim() ||
+    safeText
+      .match(
+        /\*\*Title:\*\*\s*([\s\S]*?)(?=\n\n|\n\*\*)/
+      )?.[1]
+      ?.trim()
+
+      ||
+
+    safeText
+      .match(/\*\*(.*?)\*\*/)
+      ?.[1]
+      ?.trim()
+
+      ||
+
     "AI Security Finding";
 
   const summary =
-    text
+    safeText
       .match(
         /\*\*Summary:\*\*\s*([\s\S]*?)(?=\n\*\*Affected Endpoint:\*\*)/
       )?.[1]
-      ?.trim() || "No summary provided.";
+      ?.trim()
+
+      ||
+
+    "No summary provided.";
 
   const affectedEndpoint =
-    text
+    safeText
       .match(
         /\*\*Affected Endpoint:\*\*\s*([\s\S]*?)(?=\n\*\*Vulnerable Parameter:\*\*)/
       )?.[1]
       ?.trim()
-      .replace(/`/g, "") || "N/A";
+
+      ||
+
+    "N/A";
 
   const vulnerableParameter =
-    text
+    safeText
       .match(
-        /\*\*Vulnerable Parameter:\*\*\s*([\s\S]*?)(?=\n\*\*Proof of Concept)/
+        /\*\*Vulnerable Parameter:\*\*\s*([\s\S]*?)(?=\n## Steps to Reproduce)/
       )?.[1]
       ?.trim()
-      .replace(/`/g, "") || "N/A";
 
-  const stepsText = 
-    text
+      ||
+
+    "N/A";
+
+  const steps =
+    safeText
       .match(
-        /Steps to Reproduce:\s*([\s\S]*?)(?=\n\*\*Impact:\*\*)/
+        /## Steps to Reproduce\s*([\s\S]*?)(?=\n\*\*Impact:\*\*)/
       )?.[1]
-      ?.trim() || "";
+      ?.trim()
 
-  const steps_to_reproduce = stepsText
-    .split("\n")
-    .map((step) => step.trim())
-    .filter(Boolean)
-    .map((step) => step.replace(/^\d+\.\s*/, ""));
+      ||
+
+    "No steps provided.";
 
   const impact =
-    text
+    safeText
       .match(
         /\*\*Impact:\*\*\s*([\s\S]*?)(?=\n\*\*Severity:\*\*)/
       )?.[1]
       ?.trim()
-      .replace(/\n- /g, "<br/>• ") ||
+
+      ||
+
     "No impact provided.";
 
   const severity =
-    text.match(/\*\*Severity:\*\*\s*([\s\S]*)/)?.[1]?.trim() ||
-    "N/A";
+    safeText
+      .match(
+        /\*\*Severity:\*\*\s*(.*)/
+      )?.[1]
+      ?.trim()
+
+      ||
+
+    "Unknown";
 
   return {
-    title,
-    summary,
-    affectedEndpoint,
-    vulnerableParameter,
-    steps_to_reproduce,
-    impact,
-    severity,
+    title: escapeHtml(cleanMarkdown(title)),
+
+    summary: escapeHtml(
+      cleanMarkdown(summary)
+    ),
+
+    affectedEndpoint: escapeHtml(
+      cleanMarkdown(affectedEndpoint)
+    ),
+
+    vulnerableParameter: escapeHtml(
+      cleanMarkdown(vulnerableParameter)
+    ),
+
+    steps: escapeHtml(
+      cleanMarkdown(steps)
+    ),
+
+    impact: escapeHtml(
+      cleanMarkdown(impact)
+    ),
+
+    severity: escapeHtml(
+      cleanMarkdown(severity)
+    ),
   };
 };

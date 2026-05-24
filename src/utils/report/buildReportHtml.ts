@@ -27,9 +27,7 @@ export const buildReportHtml = ({
     .map((report: any, index: number) => {
       const vulnerability = parseAIReport(report.ai_report);
 
-      const severityClass = getSeverityClass(
-        vulnerability.severity
-      );
+      const severityClass = getSeverityClass(vulnerability.severity);
 
       return `
         <section class="vulnerability-page">
@@ -62,31 +60,19 @@ export const buildReportHtml = ({
             <div class="section">
               <h3>Affected Endpoint</h3>
 
-              <p class="code-box">
-                ${vulnerability.affectedEndpoint}
-              </p>
+              <pre class="code-box">${vulnerability.affectedEndpoint}</pre>
             </div>
 
             <div class="section">
               <h3>Vulnerable Parameter</h3>
 
-              <p class="code-box">
-                ${vulnerability.vulnerableParameter}
-              </p>
+              <pre class="code-box">${vulnerability.vulnerableParameter}</pre>
             </div>
 
             <div class="section">
               <h3>Steps To Reproduce</h3>
 
-              <ul>
-                ${vulnerability.steps_to_reproduce
-                  .map(
-                    (step: string) => `
-                      <li>${step}</li>
-                    `
-                  )
-                  .join("")}
-              </ul>
+              <pre class="steps-box">${vulnerability.steps}</pre>
             </div>
 
             <div class="section impact-box">
@@ -319,7 +305,7 @@ export const buildReportHtml = ({
           .vuln-header {
             border-bottom: 1px solid #e5e7eb;
             padding-bottom: 13px;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
           }
 
           .vuln-label {
@@ -333,7 +319,7 @@ export const buildReportHtml = ({
 
           h2 {
             margin: 0;
-            font-size: 22px;
+            font-size: 21px;
             line-height: 1.25;
             color: #020617;
             word-break: break-word;
@@ -370,43 +356,41 @@ export const buildReportHtml = ({
           }
 
           .section {
-            margin-bottom: 16px;
+            margin-bottom: 12px;
           }
 
           .section h3 {
-            margin: 0 0 8px;
+            margin: 0 0 7px;
             color: #dc2626;
-            font-size: 14px;
+            font-size: 13px;
           }
 
           p {
             margin: 0;
-            line-height: 1.65;
-            font-size: 11.5px;
+            line-height: 1.55;
+            font-size: 10.8px;
             color: #111827;
           }
 
-          ul {
-            margin: 0;
-            padding-left: 18px;
-          }
-
-          li {
-            margin-bottom: 6px;
-            line-height: 1.55;
-            font-size: 11.5px;
-          }
-
-          .code-box {
+          .code-box,
+          .steps-box {
             background: #f8fafc;
             border: 1px solid #cbd5e1;
             border-left: 4px solid #dc2626;
             border-radius: 11px;
-            padding: 10px 12px;
-            font-family: Consolas, monospace;
-            font-size: 10.5px;
-            line-height: 1.5;
-            word-break: break-all;
+            padding: 9px 11px;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 9.8px;
+            line-height: 1.45;
+            color: #111827;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+          }
+
+          .steps-box {
+            max-height: 54mm;
+            overflow: hidden;
           }
 
           .impact-box {
@@ -414,35 +398,35 @@ export const buildReportHtml = ({
             border: 1px solid #fecdd3;
             border-left: 4px solid #dc2626;
             border-radius: 14px;
-            padding: 13px;
-            margin-bottom: 14px;
+            padding: 12px;
+            margin-bottom: 12px;
           }
 
           .risk-info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 14px;
+            gap: 9px;
+            margin-bottom: 12px;
           }
 
           .risk-info-item {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 12px;
-            padding: 12px;
+            padding: 10px;
           }
 
           .risk-info-item span {
             display: block;
-            font-size: 10px;
+            font-size: 9px;
             color: #64748b;
             font-weight: 700;
             text-transform: uppercase;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
           }
 
           .risk-info-item strong {
-            font-size: 12px;
+            font-size: 11px;
             color: #0f172a;
           }
 
@@ -451,7 +435,7 @@ export const buildReportHtml = ({
             border: 1px solid #bfdbfe;
             border-left: 4px solid #2563eb;
             border-radius: 14px;
-            padding: 13px;
+            padding: 12px;
           }
 
           .mapping-box h3 {
@@ -459,7 +443,7 @@ export const buildReportHtml = ({
           }
 
           .mapping-box p {
-            margin-bottom: 8px;
+            margin-bottom: 7px;
           }
 
           .footer {

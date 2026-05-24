@@ -54,7 +54,7 @@ export const reportWorker = new Worker<GenerateReportJobData>(
             };
 
       const vulnerabilities = await VulnerabilityModel.find(filter)
-        .limit(10)
+        // .limit(10)
         .select("url alert param attack risk")
         .lean();
 
@@ -73,13 +73,15 @@ export const reportWorker = new Worker<GenerateReportJobData>(
           },
           timeout: 1000 * 60 * 5,
         }
-      );
+      );      
+      const aiReports =
+        aiResponse.data?.data ||
+        aiResponse.data?.vulnerabilities;
 
-      const aiReports = aiResponse.data.data;
-
-
-
-
+      if (!Array.isArray(aiReports)) {
+        console.log("INVALID AI RESPONSE:", aiResponse.data);
+        throw new Error("Invalid AI response format.");
+      }
 
       // use Fake Data 
 
