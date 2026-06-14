@@ -47,7 +47,7 @@ export class NotificationService {
       android: {
         priority: "high",
         notification: {
-          channelId: "default",
+          // channelId: "default",
           sound: "default",
           priority: "high",
         },
