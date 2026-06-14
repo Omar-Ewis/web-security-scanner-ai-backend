@@ -42,12 +42,12 @@ export class NotificationService {
       data: {
         title: data.title,
         body: data.body,
+        scanId: data.scanId || "",
       },
 
       android: {
         priority: "high",
         notification: {
-          // channelId: "default",
           sound: "default",
           priority: "high",
         },
