@@ -172,6 +172,7 @@ export const monitorWorker = new Worker(
             data: {
               title: "Scan Finished",
               body: `Your scan has been completed in ${durationText}. Check the results.`,
+              scanId: scanId.toString()
             },
           });
 
