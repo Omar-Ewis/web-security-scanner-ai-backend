@@ -175,6 +175,7 @@ class Authentication {
         userId: user._id,
         token: FCM,
       });
+      console.log('I Catched The FCM From Mobile Application');
     }
 
     const credentials = await createLoginCredentials(user)
