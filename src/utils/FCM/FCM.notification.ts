@@ -33,7 +33,25 @@ export class NotificationService {
   }) {
     return await this.client.messaging().send({
       token,
-      data,
+
+      notification: {
+        title: data.title,
+        body: data.body,
+      },
+
+      data: {
+        title: data.title,
+        body: data.body,
+      },
+
+      android: {
+        priority: "high",
+        notification: {
+          channelId: "default",
+          sound: "default",
+          priority: "high",
+        },
+      },
     });
   }
 
