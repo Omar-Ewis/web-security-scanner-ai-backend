@@ -29,7 +29,7 @@ export class NotificationService {
     data,
   }: {
     token: string;
-    data: { title: string; body: string; scanId?: string };
+    data: { title: string; body: string; reportId?: string; scanId?: string; typeOfRisk?: string };
   }) {
     return await this.client.messaging().send({
       token,
@@ -60,7 +60,7 @@ export class NotificationService {
     data,
   }: {
     tokens: string[];
-    data: { title: string; body: string; scanId?: string };
+    data: { title: string; body: string; reportId?: string; scanId?: string; typeOfRisk?: string };
   }) {
     if (!tokens.length) return [];
 

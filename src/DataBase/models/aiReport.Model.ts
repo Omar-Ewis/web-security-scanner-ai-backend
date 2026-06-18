@@ -5,6 +5,7 @@ export enum ReportTypeEnum {
   HIGH = "High",
   MEDIUM = "Medium",
   LOW = "Low",
+  INFORMATIONAL = "Informational"
 
 }
 

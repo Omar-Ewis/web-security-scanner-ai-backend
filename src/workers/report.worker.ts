@@ -14,6 +14,10 @@ import { VulnerabilityModel } from "../DataBase/models/Vulnerability.Model";
 
 import { buildReportHtml } from "../utils/report/buildReportHtml";
 import { uploadPdfToCloudinary } from "../utils/cloudinary/uploadPdf";
+
+import { getUserTokens } from "../utils/FCM/FCM.service";
+import { notificationService } from "../utils/FCM/FCM.notification";
+
 // import { fakeGenerateReportAI } from "../utils/report/fakeGenerateReportAI";
 
 type GenerateReportJobData = {
@@ -29,7 +33,7 @@ export const reportWorker = new Worker<GenerateReportJobData>(
   async (job: Job<GenerateReportJobData>) => {
     const startTime = Date.now();
 
-    const { reportId, scanId, typeOfRisk } = job.data;
+    const { reportId, scanId, userId, typeOfRisk } = job.data;
 
     let browser: Browser | null = null;
 
@@ -47,14 +51,16 @@ export const reportWorker = new Worker<GenerateReportJobData>(
 
       const filter =
         typeOfRisk === ReportTypeEnum.ALL
-          ? { scanId }
+          ? {
+              scanId,
+              risk: { $ne: ReportTypeEnum.INFORMATIONAL },
+            }
           : {
               scanId,
               risk: typeOfRisk,
             };
 
       const vulnerabilities = await VulnerabilityModel.find(filter)
-        // .limit(10)
         .select("url alert param attack risk")
         .lean();
 
@@ -63,7 +69,7 @@ export const reportWorker = new Worker<GenerateReportJobData>(
       }
 
       const aiResponse = await axios.post(
-         process.env.AI_REPORT_API_URL as string,
+        process.env.AI_REPORT_API_URL as string,
         {
           vulnerabilityToAI: vulnerabilities,
         },
@@ -71,27 +77,21 @@ export const reportWorker = new Worker<GenerateReportJobData>(
           headers: {
             "Content-Type": "application/json",
           },
-          timeout: 1000 * 60 * 5,
+          timeout: 1000 * 60 * 10,
         }
-      );      
+      );
+
       const aiReports =
-        aiResponse.data?.data ||
-        aiResponse.data?.vulnerabilities;
+        aiResponse.data?.data || aiResponse.data?.vulnerabilities;
 
       if (!Array.isArray(aiReports)) {
         console.log("INVALID AI RESPONSE:", aiResponse.data);
         throw new Error("Invalid AI response format.");
       }
 
-      // use Fake Data 
-
+      // Fake Data
       // const aiResponse = await fakeGenerateReportAI();
       // const aiReports = aiResponse.vulnerabilities;
-
-      if (!Array.isArray(aiReports)) {
-        console.log("INVALID AI RESPONSE:", aiResponse.data);
-        throw new Error("Invalid AI response format.");
-      }
 
       const html = buildReportHtml({
         aiReports,
@@ -102,7 +102,7 @@ export const reportWorker = new Worker<GenerateReportJobData>(
 
       browser = await puppeteer.launch({
         headless: true,
-        protocolTimeout: 1000 * 60 * 5,
+        protocolTimeout: 1000 * 60 * 10,
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
       });
 
@@ -110,13 +110,13 @@ export const reportWorker = new Worker<GenerateReportJobData>(
 
       await page.setContent(html, {
         waitUntil: "domcontentloaded",
-        timeout: 1000 * 60 * 5,
+        timeout: 1000 * 60 * 10,
       });
 
       const pdfBuffer = await page.pdf({
         format: "A4",
         printBackground: true,
-        timeout: 1000 * 60 * 5,
+        timeout: 1000 * 60 * 10,
         margin: {
           top: "20px",
           right: "20px",
@@ -131,13 +131,60 @@ export const reportWorker = new Worker<GenerateReportJobData>(
         typeOfRisk,
       });
 
-      await ReportModel.findByIdAndUpdate(reportId, {
-        status: ReportStatusEnum.COMPLETED,
-        fileUrl: uploadResult.secure_url,
-        cloudinaryPublicId: uploadResult.public_id,
-        generationTimeMs: Date.now() - startTime,
-        failureReason: null,
-      });
+      const updatedReport = await ReportModel.findByIdAndUpdate(
+        reportId,
+        {
+          status: ReportStatusEnum.COMPLETED,
+          fileUrl: uploadResult.secure_url,
+          cloudinaryPublicId: uploadResult.public_id,
+          generationTimeMs: Date.now() - startTime,
+          failureReason: null,
+        },
+        {
+          new: true,
+        }
+      );
+
+      if (updatedReport?.userId) {
+        const tokens = await getUserTokens(updatedReport.userId);
+
+        if (tokens.length > 0) {
+          await notificationService.sendNotifications({
+            tokens,
+            data: {
+              title: "Report Ready",
+              body: `${typeOfRisk} security report has been generated successfully.`,
+              reportId: reportId.toString(),
+              scanId: scanId.toString(),
+              typeOfRisk,
+            },
+          });
+
+          console.log(`Notification sent for report ${reportId}`);
+        } else {
+          console.log(
+            `No active FCM tokens found for user ${updatedReport.userId}`
+          );
+        }
+      } else {
+        const tokens = await getUserTokens(userId);
+
+        if (tokens.length > 0) {
+          await notificationService.sendNotifications({
+            tokens,
+            data: {
+              title: "Report Ready",
+              body: `${typeOfRisk} security report has been generated successfully.`,
+              reportId: reportId.toString(),
+              scanId: scanId.toString(),
+              typeOfRisk,
+            },
+          });
+
+          console.log(`Notification sent for report ${reportId}`);
+        }
+      }
+
       console.log(`Report generated successfully: ${reportId}`);
     } catch (error: any) {
       console.error("Report worker failed:", error);

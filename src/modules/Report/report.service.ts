@@ -76,7 +76,7 @@ export const generateReport = async (
 
   const filter =
     reportType === ReportTypeEnum.ALL
-      ? { scanId }
+      ? { scanId, risk: { $ne: ReportTypeEnum.INFORMATIONAL } }
       : { scanId, risk: reportType };
 
   const totalVulnerabilities = await VulnerabilityModel.countDocuments(filter);
